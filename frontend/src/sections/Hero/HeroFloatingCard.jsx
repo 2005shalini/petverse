@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import GlassCard from "../../components/ui/GlassCard";
+import useMouseParallax from "../../hooks/useMouseParallax";
+
 
 const HeroFloatingCard = ({
   icon,
@@ -7,8 +9,10 @@ const HeroFloatingCard = ({
   value,
   className,
 }) => {
+  const { x, y } = useMouseParallax(8);
   return (
     <motion.div
+    style={{x,y}}
       animate={{
         y: [0, -10, 0]
       }}

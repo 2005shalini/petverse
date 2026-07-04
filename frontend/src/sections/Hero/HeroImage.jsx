@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
 import dog from "../../assets/illustrations/dog-cat.png";
+import useMouseParallax from "../../hooks/useMouseParallax";
 
 const HeroImage = () => {
+  const { x, y } = useMouseParallax(18);
   return (
     <motion.div
+      style={{x,y}}
       initial={{
         opacity: 0,
         scale: .9

@@ -3,6 +3,7 @@ import Container from "../../components/ui/Container";
 
 import HeroLeft from "./HeroLeft";
 import HeroRight from "./HeroRight";
+import HeroScroll from "./HeroScroll";
 
 const Hero = () => {
   return (
@@ -17,8 +18,11 @@ const Hero = () => {
           <HeroRight />
 
         </div>
+        
       </Container>
+      <HeroScroll />
     </section>
+    
   );
 };
 
