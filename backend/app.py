@@ -139,6 +139,19 @@ def update_pet(pet_id):
     db.commit()
 
     return {"message": "Pet updated successfully"}
+# ✅ DELETE PET API
+@app.route("/delete_pet/<int:pet_id>", methods=["DELETE"])
+def delete_pet(pet_id):
+
+    cursor = db.cursor()
+
+    query = "DELETE FROM pets WHERE pet_id = %s"
+
+    cursor.execute(query, (pet_id,))
+
+    db.commit()
+
+    return {"message": "Pet deleted successfully"}
 
 if __name__ == "__main__":
     app.run(debug=True)
