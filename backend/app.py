@@ -184,5 +184,6 @@ def book_appointment():
 
     return {"message": "Appointment Booked Successfully"}
 
+
 if __name__ == "__main__":
     app.run(debug=True)
