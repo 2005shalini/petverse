@@ -275,7 +275,47 @@ def cancel_appointment(appointment_id):
     db.commit()
 
     return {"message": "Appointment Cancelled Successfully"}
+# ✅ DASHBOARD API
+@app.route("/dashboard/<int:user_id>", methods=["GET"])
+def dashboard(user_id):
 
+    cursor = db.cursor(dictionary=True)
+
+    # User Details
+    cursor.execute(
+        "SELECT user_id, full_name, email, phone FROM users WHERE user_id=%s",
+        (user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    if user is None:
+        return {"message": "User not found"}, 404
+
+
+    # Total Pets
+    cursor.execute(
+        "SELECT COUNT(*) AS total_pets FROM pets WHERE user_id=%s",
+        (user_id,)
+    )
+
+    total_pets = cursor.fetchone()
+
+
+    # Total Appointments
+    cursor.execute(
+        "SELECT COUNT(*) AS total_appointments FROM appointments WHERE user_id=%s",
+        (user_id,)
+    )
+
+    total_appointments = cursor.fetchone()
+
+
+    return {
+        "user": user,
+        "total_pets": total_pets["total_pets"],
+        "total_appointments": total_appointments["total_appointments"]
+    }
 
 if __name__ == "__main__":
     app.run(debug=True)
