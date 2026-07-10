@@ -1,16 +1,37 @@
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   Bell,
   ChevronDown,
   Menu,
   Moon,
   Search,
+  CheckCircle,
+  Eye
 } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
+import NotificationBell from "@/components/notifications/shared/NotificationBell";
 
 const TopNavbar = ({
   onMenuClick,
   pageTitle = "Dashboard",
   pageDescription = "Welcome back! Here's what's happening today.",
 }) => {
+  const { notifications, unreadCount, markAsRead, markAllRead } = useNotifications();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
       <div className="flex h-20 items-center justify-between px-6 lg:px-10">
@@ -90,24 +111,112 @@ const TopNavbar = ({
             <Moon size={18} />
           </button>
 
-          {/* Notifications */}
-          <button
-            className="
-              relative
-              rounded-2xl
-              border
-              border-slate-200
-              bg-white
-              p-3
-              transition
-              hover:border-emerald-300
-              hover:bg-emerald-50
-            "
-          >
-            <Bell size={18} />
+          {/* Notifications Bell and Quick Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <NotificationBell
+              unreadCount={unreadCount}
+              onClick={() => setIsOpen(!isOpen)}
+            />
 
-            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          </button>
+            {isOpen && (
+              <div className="
+                absolute
+                right-0
+                mt-3
+                w-80
+                rounded-3xl
+                border
+                border-slate-100
+                bg-white
+                p-4
+                shadow-2xl
+                z-50
+                text-left
+              ">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2 mb-2">
+                  <span className="font-bold text-slate-800 text-sm">Recent Alerts</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1 uppercase tracking-wider"
+                    >
+                      <CheckCircle size={10} />
+                      Read All
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {notifications.slice(0, 3).map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        markAsRead(item.id);
+                        setIsOpen(false);
+                      }}
+                      className={`
+                        p-2.5
+                        rounded-xl
+                        hover:bg-slate-50
+                        transition
+                        cursor-pointer
+                        border
+                        border-transparent
+                        ${!item.isRead ? "bg-slate-50/50 border-emerald-100/30" : ""}
+                      `}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-slate-800 truncate pr-2 flex-1">
+                          {item.title}
+                        </span>
+                        {!item.isRead && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-semibold truncate mt-1">
+                        {item.description}
+                      </p>
+                    </div>
+                  ))}
+                  {notifications.length === 0 && (
+                    <p className="text-xs text-slate-400 font-semibold text-center py-4">
+                      No notifications yet.
+                    </p>
+                  )}
+                </div>
+
+                <Link
+                  to="/notifications"
+                  onClick={() => setIsOpen(false)}
+                  className="
+                    mt-3
+                    w-full
+                    rounded-xl
+                    bg-slate-50
+                    hover:bg-slate-100
+                    py-2
+                    text-center
+                    text-[10px]
+                    font-black
+                    text-slate-500
+                    uppercase
+                    tracking-widest
+                    flex
+                    items-center
+                    justify-center
+                    gap-1.5
+                    border
+                    border-slate-100
+                    transition
+                    block
+                  "
+                >
+                  <Eye size={12} />
+                  View Notification Center
+                </Link>
+              </div>
+            )}
+          </div>
 
           {/* User */}
           <button
