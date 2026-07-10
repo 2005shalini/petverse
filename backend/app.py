@@ -397,6 +397,108 @@ def remove_from_cart(cart_id):
     db.commit()
 
     return {"message": "Item Removed From Cart Successfully"}
+# ✅ UPDATE CART QUANTITY API
+@app.route("/update_cart/<int:cart_id>", methods=["PUT"])
+def update_cart(cart_id):
+
+    data = request.get_json()
+
+    quantity = data["quantity"]
+
+    cursor = db.cursor()
+
+    query = """
+    UPDATE cart
+    SET quantity = %s
+    WHERE cart_id = %s
+    """
+
+    cursor.execute(query, (
+        quantity,
+        cart_id
+    ))
+
+    db.commit()
+
+    return {"message": "Cart Updated Successfully"}
+# ✅ CHECKOUT API
+@app.route("/checkout", methods=["POST"])
+def checkout():
+
+    data = request.get_json()
+
+    user_id = data["user_id"]
+
+    cursor = db.cursor(dictionary=True)
+
+    # Get all cart items
+    cursor.execute("""
+        SELECT cart.product_id,
+               cart.quantity,
+               products.price
+        FROM cart
+        JOIN products
+        ON cart.product_id = products.product_id
+        WHERE cart.user_id = %s
+    """, (user_id,))
+
+    cart_items = cursor.fetchall()
+
+    if len(cart_items) == 0:
+        return {"message": "Cart is Empty"}
+
+    # Place Orders
+    for item in cart_items:
+
+        total_price = item["price"] * item["quantity"]
+
+        cursor.execute("""
+            INSERT INTO orders
+            (user_id, product_id, quantity, total_price)
+            VALUES (%s,%s,%s,%s)
+        """, (
+            user_id,
+            item["product_id"],
+            item["quantity"],
+            total_price
+        ))
+
+    # Clear Cart
+    cursor.execute(
+        "DELETE FROM cart WHERE user_id=%s",
+        (user_id,)
+    )
+
+    db.commit()
+
+    return {"message": "Checkout Successful"}
+# ✅ ADD FEEDBACK API
+@app.route("/add_feedback", methods=["POST"])
+def add_feedback():
+
+    data = request.get_json()
+
+    user_id = data["user_id"]
+    message = data["message"]
+    rating = data["rating"]
+
+    cursor = db.cursor()
+
+    query = """
+    INSERT INTO feedback
+    (user_id, message, rating)
+    VALUES (%s, %s, %s)
+    """
+
+    cursor.execute(query, (
+        user_id,
+        message,
+        rating
+    ))
+
+    db.commit()
+
+    return {"message": "Feedback Submitted Successfully"}
 # ✅ PLACE ORDER API
 @app.route("/place_order", methods=["POST"])
 def place_order():
