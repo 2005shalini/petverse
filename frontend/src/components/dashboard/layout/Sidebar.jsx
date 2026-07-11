@@ -11,6 +11,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Users,
+  Bell
 } from "lucide-react";
 
 
@@ -46,9 +48,19 @@ const navigation =[
         path:"/shop",
     },
     {
+        title:"Community",
+        icon: Users,
+        path:"/community",
+    },
+    {
         title:"Adoption",
         icon:Heart,
         path:"/adoption",
+    },
+    {
+        title:"Notifications",
+        icon:Bell,
+        path:"/notifications",
     },
     {
         title: "Settings",

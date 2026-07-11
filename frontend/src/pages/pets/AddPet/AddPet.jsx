@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/dashboard/layout";
 import DashboardHeader from "@/pages/dashboard/DashboardHome/DashboardHeader";
 import { usePetForm } from "@/hooks/usePetForm";
 import { getStoredPets, saveStoredPets } from "@/mock/pets";
+import { publishEvent } from "@/utils/events";
 
 // Form steps imports
 import BasicInformationForm from "@/components/pets/forms/BasicInformationForm";
@@ -63,6 +64,14 @@ export default function AddPet() {
 
     const updatedList = [...stored, newPet];
     saveStoredPets(updatedList);
+    publishEvent({
+      type: "PET_ADDED",
+      category: "system",
+      title: "New Pet Profile Added",
+      description: `${newPet.name} has been added to your PetVerse family!`,
+      priority: "medium",
+      action: `/pets/${newId}`
+    });
     setCreatedPetId(newId);
     setCurrentStep(6); // Go to Success step
   };

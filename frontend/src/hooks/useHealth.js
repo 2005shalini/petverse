@@ -6,8 +6,10 @@ import {
   getStoredAppointments,
   saveStoredAppointments,
   getStoredEmergencyContacts,
-  saveStoredEmergencyContacts
+  saveStoredEmergencyContacts,
+  getStoredMedicalDocuments
 } from "@/mock/health";
+import { publishEvent } from "@/utils/events";
 
 export function useHealth() {
   const [pets, setPets] = useState([]);
@@ -162,6 +164,15 @@ export function useHealth() {
       syncToPetProfile(selectedPetId, updated, appointments);
       return updated;
     });
+
+    publishEvent({
+      type: "VACCINATION_COMPLETED",
+      category: "health",
+      title: "Medical Record Logged",
+      description: `New visit record added: "${newRecord.diagnosis || "Routine Checkup"}" for your pet.`,
+      priority: "medium",
+      action: "/health"
+    });
   }, [selectedPetId, appointments, syncToPetProfile]);
 
   const updateRecord = useCallback((id, updatedFields) => {
@@ -196,6 +207,15 @@ export function useHealth() {
       saveStoredAppointments(updated);
       syncToPetProfile(selectedPetId, records, updated);
       return updated;
+    });
+
+    publishEvent({
+      type: "APPOINTMENT_SCHEDULED",
+      category: "health",
+      title: "Appointment Scheduled",
+      description: `New appointment scheduled: "${newApt.reason}" on ${newApt.visitDate} at ${newApt.time}.`,
+      priority: "medium",
+      action: "/health/appointments"
     });
   }, [selectedPetId, records, syncToPetProfile]);
 

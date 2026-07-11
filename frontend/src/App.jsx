@@ -1,8 +1,11 @@
 import AppRoutes from "./routes/AppRoutes";
+import { AIContextProvider } from "./contexts/AIContext";
 
 function App() {
   return (
-    <AppRoutes />
+    <AIContextProvider>
+      <AppRoutes />
+    </AIContextProvider>
   );
 }
 
