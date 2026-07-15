@@ -16,11 +16,16 @@ When you add a model in a future phase, import it here.
 from app.models.enums import (
     AuthProvider,
     Gender,
+    PetGender,
+    PetSpecies,
+    PetStatus,
     ProfileVisibility,
     ThemePreference,
     UserRole,
     VerificationTokenType,
 )
+from app.models.pet import Pet
+from app.models.pet_gallery_image import PetGalleryImage
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.models.user_preference import UserPreference
@@ -34,9 +39,14 @@ __all__ = [
     "ThemePreference",
     "ProfileVisibility",
     "VerificationTokenType",
+    "PetSpecies",
+    "PetGender",
+    "PetStatus",
     "User",
     "RefreshToken",
     "VerificationToken",
     "UserPreference",
     "UserPrivacySetting",
+    "Pet",
+    "PetGalleryImage",
 ]

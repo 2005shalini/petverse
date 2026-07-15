@@ -88,6 +88,14 @@ class Settings(BaseSettings):
         default="image/jpeg,image/png,image/webp",
         description="Comma-separated list of accepted avatar MIME types",
     )
+    MAX_PET_IMAGE_SIZE_MB: int = Field(default=5, gt=0)
+    ALLOWED_PET_IMAGE_CONTENT_TYPES: str = Field(
+        default="image/jpeg,image/png,image/webp",
+        description="Comma-separated list of accepted pet image MIME types",
+    )
+    PET_GALLERY_MAX_IMAGES: int = Field(
+        default=20, gt=0, description="Max gallery images per pet"
+    )
 
     # ─── CORS ─────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: str = Field(
@@ -140,6 +148,19 @@ class Settings(BaseSettings):
     @property
     def max_avatar_size_bytes(self) -> int:
         return self.MAX_AVATAR_SIZE_MB * 1024 * 1024
+
+    @property
+    def allowed_pet_image_content_types_set(self) -> set[str]:
+        """Parse comma-separated ALLOWED_PET_IMAGE_CONTENT_TYPES into a set."""
+        return {
+            t.strip()
+            for t in self.ALLOWED_PET_IMAGE_CONTENT_TYPES.split(",")
+            if t.strip()
+        }
+
+    @property
+    def max_pet_image_size_bytes(self) -> int:
+        return self.MAX_PET_IMAGE_SIZE_MB * 1024 * 1024
 
     @property
     def is_development(self) -> bool:
