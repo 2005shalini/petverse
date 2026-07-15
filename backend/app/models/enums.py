@@ -54,3 +54,27 @@ class VerificationTokenType(str, Enum):
 
     EMAIL_VERIFICATION = "EMAIL_VERIFICATION"
     PASSWORD_RESET = "PASSWORD_RESET"
+
+
+class Gender(str, Enum):
+    """Self-identified gender, shown on the profile. Optional everywhere."""
+
+    MALE = "MALE"
+    FEMALE = "FEMALE"
+    OTHER = "OTHER"
+    PREFER_NOT_TO_SAY = "PREFER_NOT_TO_SAY"
+
+
+class ThemePreference(str, Enum):
+    """UI theme preference (Phase B3 — Account Preferences)."""
+
+    LIGHT = "LIGHT"
+    DARK = "DARK"
+    SYSTEM = "SYSTEM"
+
+
+class ProfileVisibility(str, Enum):
+    """Who can view a user's profile (Phase B3 — Privacy Settings)."""
+
+    PUBLIC = "PUBLIC"
+    PRIVATE = "PRIVATE"

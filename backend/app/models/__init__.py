@@ -13,16 +13,30 @@ Importing every model here serves two purposes:
 When you add a model in a future phase, import it here.
 """
 
-from app.models.enums import AuthProvider, UserRole, VerificationTokenType
+from app.models.enums import (
+    AuthProvider,
+    Gender,
+    ProfileVisibility,
+    ThemePreference,
+    UserRole,
+    VerificationTokenType,
+)
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
+from app.models.user_preference import UserPreference
+from app.models.user_privacy import UserPrivacySetting
 from app.models.verification_token import VerificationToken
 
 __all__ = [
     "AuthProvider",
     "UserRole",
+    "Gender",
+    "ThemePreference",
+    "ProfileVisibility",
     "VerificationTokenType",
     "User",
     "RefreshToken",
     "VerificationToken",
+    "UserPreference",
+    "UserPrivacySetting",
 ]
