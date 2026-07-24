@@ -44,7 +44,8 @@ _settings = get_settings()
 config = context.config
 
 # Override the sqlalchemy.url from alembic.ini with the real URL from .env
-config.set_main_option("sqlalchemy.url", _settings.DATABASE_URL)
+# Escape % to %% because configparser treats % as interpolation
+config.set_main_option("sqlalchemy.url", str(_settings.DATABASE_URL).replace("%", "%%"))
 
 # Set up loggers from alembic.ini
 if config.config_file_name is not None:

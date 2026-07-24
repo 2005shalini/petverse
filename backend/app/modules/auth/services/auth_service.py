@@ -267,8 +267,6 @@ class AuthService:
         3. If not found → create a new account with provider=GOOGLE, no password.
         4. Update last_login and profile image, then issue tokens.
         """
-        from app.utils.uuid_helper import generate_uuid_hex
-
         email = email.strip().lower()
 
         # Try to find existing user by email
@@ -284,6 +282,8 @@ class AuthService:
             # Auto-verify since Google already confirmed the email
             if email_verified:
                 user.is_verified = True
+            user.last_login = utcnow()
+            user = await self.users.save(user)
         else:
             # Generate a username from given name + random suffix
             base_username = (first_name + last_name).lower().replace(" ", "_")[:35]
@@ -306,15 +306,12 @@ class AuthService:
                 profile_image=profile_image or None,
                 is_active=True,
                 is_verified=email_verified,
+                role=UserRole.USER,
+                last_login=utcnow(),
             )
-            self.session.add(user)
-            await self.session.flush()
+            user = await self.users.add(user)
 
-        from app.utils.datetime_helper import utcnow
-        user.last_login = utcnow()
-        tokens = await self.tokens.create_token_pair(user)
-        await self.session.commit()
-        await self.session.refresh(user)
+        tokens = await self.tokens.issue_pair(user)
 
         logger.info("Google OAuth login: user_id=%s email=%s", user.id, user.email)
         return user, tokens

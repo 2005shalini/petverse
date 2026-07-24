@@ -12,11 +12,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.core.config import get_settings
+from app.core.logging import get_logger
 from app.dependencies.auth import get_auth_service
 from app.modules.auth.services.auth_service import AuthService
 from app.modules.user.schemas.user import UserResponse
 from app.modules.auth.schemas.auth import AuthResponse
 from app.utils.response import success_response
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -55,87 +58,116 @@ async def google_callback(
     auth: AuthService = Depends(get_auth_service),
 ):
     """Handle Google OAuth callback and issue JWT tokens."""
+    from urllib.parse import urlencode
+
     settings = get_settings()
-    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Google OAuth is not configured."
-        )
-
-    # Exchange code for tokens
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "code": code,
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code"
-            }
-        )
-
-    if token_response.status_code != 200:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to exchange authorization code with Google."
-        )
-
-    token_data = token_response.json()
-    google_access_token = token_data.get("access_token")
-
-    if not google_access_token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No access token received from Google."
-        )
-
-    # Fetch user info from Google
-    async with httpx.AsyncClient() as client:
-        userinfo_response = await client.get(
-            GOOGLE_USERINFO_URL,
-            headers={"Authorization": f"Bearer {google_access_token}"}
-        )
-
-    if userinfo_response.status_code != 200:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to fetch user info from Google."
-        )
-
-    google_user = userinfo_response.json()
-    google_id = google_user.get("sub")
-    email = google_user.get("email")
-    given_name = google_user.get("given_name", "")
-    family_name = google_user.get("family_name", "")
-    picture = google_user.get("picture", "")
-    email_verified = google_user.get("email_verified", False)
-
-    if not email or not google_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Google did not provide a valid email or user ID."
-        )
-
-    # Delegate to auth service for upsert + token generation
-    user, tokens = await auth.login_or_register_with_google(
-        google_id=google_id,
-        email=email,
-        first_name=given_name,
-        last_name=family_name,
-        profile_image=picture,
-        email_verified=email_verified
-    )
-
-    # Redirect to frontend with tokens in URL fragment (SPA friendly)
     frontend_url = settings.FRONTEND_URL
-    redirect_url = (
-        f"{frontend_url}/auth/oauth-callback"
-        f"?access_token={tokens.access_token}"
-        f"&refresh_token={tokens.refresh_token}"
-        f"&token_type={tokens.token_type}"
-    )
-    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error=oauth_not_configured",
+            status_code=status.HTTP_302_FOUND,
+        )
+
+    try:
+        # Exchange code for tokens
+        logger.info("Google OAuth: exchanging authorization code")
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                GOOGLE_TOKEN_URL,
+                data={
+                    "code": code,
+                    "client_id": settings.GOOGLE_CLIENT_ID,
+                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+                    "grant_type": "authorization_code"
+                }
+            )
+
+        if token_response.status_code != 200:
+            logger.error(
+                "Google token exchange failed | status=%d | response=%s",
+                token_response.status_code,
+                token_response.text,
+            )
+            return RedirectResponse(
+                url=f"{frontend_url}/login?error=google_token_exchange_failed",
+                status_code=status.HTTP_302_FOUND,
+            )
+
+        token_data = token_response.json()
+        google_access_token = token_data.get("access_token")
+
+        if not google_access_token:
+            logger.error("Google returned no access_token in response")
+            return RedirectResponse(
+                url=f"{frontend_url}/login?error=no_google_token",
+                status_code=status.HTTP_302_FOUND,
+            )
+
+        # Fetch user info from Google
+        logger.info("Google OAuth: fetching user info")
+        async with httpx.AsyncClient() as client:
+            userinfo_response = await client.get(
+                GOOGLE_USERINFO_URL,
+                headers={"Authorization": f"Bearer {google_access_token}"}
+            )
+
+        if userinfo_response.status_code != 200:
+            logger.error("Google userinfo fetch failed | status=%d", userinfo_response.status_code)
+            return RedirectResponse(
+                url=f"{frontend_url}/login?error=google_userinfo_failed",
+                status_code=status.HTTP_302_FOUND,
+            )
+
+        google_user = userinfo_response.json()
+        google_id = google_user.get("sub")
+        email = google_user.get("email")
+        given_name = google_user.get("given_name", "")
+        family_name = google_user.get("family_name", "")
+        picture = google_user.get("picture", "")
+        email_verified = google_user.get("email_verified", False)
+
+        if not email or not google_id:
+            logger.error("Google did not provide email or sub")
+            return RedirectResponse(
+                url=f"{frontend_url}/login?error=google_no_email",
+                status_code=status.HTTP_302_FOUND,
+            )
+
+        # Delegate to auth service for upsert + token generation
+        logger.info("Google OAuth: creating/finding user for email=%s", email)
+        user, tokens = await auth.login_or_register_with_google(
+            google_id=google_id,
+            email=email,
+            first_name=given_name,
+            last_name=family_name,
+            profile_image=picture,
+            email_verified=email_verified
+        )
+
+        logger.info(
+            "Google OAuth success | user_id=%s | has_access=%s | has_refresh=%s",
+            user.id,
+            bool(tokens.access_token),
+            bool(tokens.refresh_token),
+        )
+
+        # Redirect to frontend with tokens (properly URL-encoded)
+        params = urlencode({
+            "access_token": tokens.access_token,
+            "refresh_token": tokens.refresh_token,
+            "token_type": tokens.token_type,
+        })
+        redirect_url = f"{frontend_url}/auth/oauth-callback?{params}"
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+
+    except Exception as exc:
+        logger.exception("Google OAuth callback failed: %s", exc)
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error=oauth_failed",
+            status_code=status.HTTP_302_FOUND,
+        )
 
 
 @router.post("/google/token", summary="Exchange Google ID token directly (mobile)")
