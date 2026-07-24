@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * OAuthCallback — Landing page after Google OAuth redirect.
@@ -12,6 +13,7 @@ import { useNavigate } from "react-router-dom";
  */
 const OAuthCallback = () => {
   const navigate = useNavigate();
+  const { fetchCurrentUser } = useAuth();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -19,23 +21,31 @@ const OAuthCallback = () => {
     const refreshToken = params.get("refresh_token");
     const error = params.get("error");
 
-    if (error) {
-      console.error("OAuth error:", error);
-      navigate("/login?error=oauth_failed");
-      return;
-    }
-
-    if (accessToken) {
-      localStorage.setItem("token", accessToken);
-      if (refreshToken) {
-        localStorage.setItem("refresh_token", refreshToken);
+    const handleAuth = async () => {
+      if (error) {
+        console.error("OAuth error:", error);
+        navigate("/login?error=oauth_failed");
+        return;
       }
-      // Clean URL and redirect to dashboard
-      navigate("/dashboard", { replace: true });
-    } else {
-      navigate("/login?error=no_token");
-    }
-  }, [navigate]);
+
+      if (accessToken) {
+        localStorage.setItem("token", accessToken);
+        if (refreshToken) {
+          localStorage.setItem("refresh_token", refreshToken);
+        }
+        
+        // Tell AuthContext to load the user using the new token
+        await fetchCurrentUser();
+        
+        // Clean URL and redirect to dashboard
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate("/login?error=no_token");
+      }
+    };
+
+    handleAuth();
+  }, [navigate, fetchCurrentUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50">
