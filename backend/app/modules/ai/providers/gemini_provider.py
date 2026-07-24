@@ -6,7 +6,7 @@ Implementation of the Google Gemini provider.
 
 import json
 from typing import List, Dict, Any, Tuple, Optional
-import google.generativeai as genai
+import google.generativeai as genai  # type: ignore
 
 from app.modules.ai.providers.base import AIProvider, AIProviderResponse
 from app.core.config import get_settings
